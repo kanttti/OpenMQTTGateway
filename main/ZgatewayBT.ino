@@ -317,6 +317,7 @@ void MiScaleDiscovery(char * mac){
               pub((char *)mactopic.c_str(),BLEdata);
               if (strstr(BLEdata["manufacturerid"].as<char*>(),"0499") != NULL){ //RuuviTag
                 trc("Processing RuuviTag BLE data");
+                process_ruuvitag(manufacturer_data,mac);
               }
           }
           else if (advertisedDevice.haveServiceData()){
@@ -741,6 +742,52 @@ bool process_scale_v2(char * rest_data, char * mac_adress){
   String mactopic(mac_adress);
   mactopic = subjectBTtoMQTT + mactopic;
   pub((char *)mactopic.c_str(),BLEdata);
+  return true;
+}
+
+bool process_ruuvitag(char * rest_data, char * mac_adress){
+  //example "manufacturerdata":"9904034b1625c966000ffff404010ba1"
+  trc("rest_data");
+  trc(rest_data);
+
+  switch (rest_data[5]) {
+    case '3': {             // Dataformat RAWv1
+      trc(F("Creating RuuviTag BLE buffer"));
+      StaticJsonBuffer<JSON_MSG_BUFFER> jsonBuffer;
+      JsonObject& BLEdata = jsonBuffer.createObject();
+      char value[4];
+      extract_char(rest_data, value, 6, 2, false, false); // Humidity (one lsb is 0.5%, e.g. 128 is 64%)
+      double humidity = double(strtol(value, NULL, 16))* 0.5;
+      extract_char(rest_data, value, 8, 2, false, false); // Temperature (MSB is sign, next 7 bits are decimal value)
+      int tempfull = strtol(value, NULL, 16);
+      extract_char(rest_data, value, 10, 2, false, false); // Temperature (fraction, 1/100.)
+      int tempfraction = strtol(value, NULL, 16);
+      if(tempfull > 127) {                                // Negative temperature
+        tempfull = 127 - tempfull;
+        tempfraction = 100 - tempfraction;
+      } 
+      double temperature = tempfull + (double(tempfraction)/100);
+      extract_char(rest_data, value, 12, 4, false, false); // Pressure (Most Significant Byte first, value - 50kPa)
+      double pressure = (double(strtol(value, NULL, 16))/100) + 500;
+      extract_char(rest_data, value, 28, 4, false, false); // Battery voltage (millivolts). MSB First
+      double voltage = (double(strtol(value, NULL, 16)) / 1000);
+      
+      //Set Json values
+      BLEdata.set("hum", (double)humidity);
+      BLEdata.set("tem", (double)temperature);
+      BLEdata.set("hpa", (double)pressure);
+      BLEdata.set("batt", (double)voltage);
+
+      // Publish RuuviTag
+      String mactopic(mac_adress);
+      mactopic = subjectBTtoMQTT + mactopic;
+      pub((char *)mactopic.c_str(),BLEdata);
+      break;
+      }
+    default:
+      trc("Data format for RuuviTag Not available");
+      break;
+  }
   return true;
 }
 
