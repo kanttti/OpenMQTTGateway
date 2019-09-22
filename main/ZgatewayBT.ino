@@ -249,6 +249,37 @@ void MiScaleDiscovery(char * mac){
   devices.push_back(device);
 }
 
+void RuuviTagDiscovery(char * mac){
+  #define RuuviTagparametersCount 4
+  trc(F("RuuviTagDiscovery"));
+  char * RuuviTagsensor[RuuviTagparametersCount][8] = {
+     {"sensor", "RuuviTag-batt", mac, "battery","{{ value_json.batt | is_defined }}","", "", "V"} ,
+     {"sensor", "RuuviTag-tem", mac,"temperature","{{ value_json.tem | is_defined }}","", "", "°C"} ,
+     {"sensor", "RuuviTag-hum", mac,"humidity","{{ value_json.hum | is_defined }}","", "", "%"} ,
+     {"sensor", "RuuviTag-pressure", mac,"pressure","{{ value_json.hpa | is_defined }}","", "", "hPa"}
+     //component type,name,availability topic,device class,value template,payload on, payload off, unit of measurement
+  };
+  
+  for (int i=0;i<RuuviTagparametersCount;i++){
+   trc(F("CreateDiscoverySensor"));
+   trc(RuuviTagsensor[i][1]);
+   String discovery_topic = String(subjectBTtoMQTT) + String(mac);
+   String unique_id = String(mac) + "-" + RuuviTagsensor[i][1];
+   createDiscovery(RuuviTagsensor[i][0],
+                    (char *)discovery_topic.c_str(), RuuviTagsensor[i][1], (char *)unique_id.c_str(),
+                    will_Topic, RuuviTagsensor[i][3], RuuviTagsensor[i][4],
+                    RuuviTagsensor[i][5], RuuviTagsensor[i][6], RuuviTagsensor[i][7],
+                    0,"","",true,"");
+  }
+  BLEdevice device;
+  strcpy( device.macAdr, mac );
+  device.isDisc = true;
+  device.isWhtL = false;
+  device.isBlkL = false;
+  devices.push_back(device);
+}
+
+
 #endif
 
   #ifdef ESP32
@@ -317,6 +348,9 @@ void MiScaleDiscovery(char * mac){
               pub((char *)mactopic.c_str(),BLEdata);
               if (strstr(BLEdata["manufacturerid"].as<char*>(),"0499") != NULL){ //RuuviTag
                 trc("Processing RuuviTag BLE data");
+                #ifdef ZmqttDiscovery
+                  if(!isDiscovered(mac)) RuuviTagDiscovery(mac);
+                #endif
                 process_ruuvitag(manufacturer_data,mac);
               }
           }
