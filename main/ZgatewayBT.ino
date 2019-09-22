@@ -287,12 +287,36 @@ void MiScaleDiscovery(char * mac){
         trc(mac);
         if((!oneWhite() || isWhite(mac)) && !isBlack(mac)){ //if not black listed mac we go AND if we have no white mac or this mac is  white we go out
           if (advertisedDevice.haveName())              BLEdata.set("name", (char *)advertisedDevice.getName().c_str());
-          if (advertisedDevice.haveManufacturerData())  BLEdata.set("manufacturerdata", (char *)advertisedDevice.getManufacturerData().c_str());
+          //if (advertisedDevice.haveManufacturerData())  BLEdata.set("manufacturerdata", (char *)advertisedDevice.getManufacturerData().c_str());
           if (advertisedDevice.haveRSSI())              BLEdata.set("rssi", (int) advertisedDevice.getRSSI());
           if (advertisedDevice.haveTXPower())           BLEdata.set("txpower", (int8_t) advertisedDevice.getTXPower());
           #ifdef subjectHomePresence
             if (advertisedDevice.haveRSSI()) haRoomPresence(BLEdata);// this device has an rssi in consequence we can use it for home assistant room presence component
           #endif
+          if (advertisedDevice.haveManufacturerData()){
+            trc(F("Get manufacturer data :"));
+              std::string manufData = advertisedDevice.getManufacturerData();               
+              int manufDataLength = manufData.length();
+              trc(manufDataLength);
+              trc(advertisedDevice.getPayloadLength());
+              String returnedString = "";
+              for (int i=0; i<manufDataLength; i++)
+              {
+                int a = manufData[i];
+                if (a < 16) {
+                  returnedString = returnedString + "0";
+                } 
+                returnedString = returnedString + String(a,HEX);  
+              }
+              char manuf_data[returnedString.length()+1];
+              returnedString.toCharArray(manuf_data,returnedString.length()+1);
+              manuf_data[returnedString.length()] = '\0';
+              #ifdef pubBLEServiceData
+                BLEdata.set("manufacturerdata", manuf_data);  
+              #endif
+              pub((char *)mactopic.c_str(),BLEdata);
+              
+          }
           if (advertisedDevice.haveServiceData()){
               trc(F("Get services data :"));
               int serviceDataCount = advertisedDevice.getServiceDataCount();
