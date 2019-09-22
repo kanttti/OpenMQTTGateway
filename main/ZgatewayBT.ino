@@ -310,8 +310,6 @@ void MiScaleDiscovery(char * mac){
               returnedString.toCharArray(manufacturer_data,returnedString.length()+1);
               manufacturer_data[returnedString.length()] = '\0';
               char manufacturer_id[5] = { manufacturer_data[2], manufacturer_data[3], manufacturer_data[0], manufacturer_data[1], '\0' };
-              trc(manufacturer_data);
-              trc(manufacturer_id);
               #ifdef pubBLEServiceData
                 BLEdata.set("manufacturerdata", manufacturer_data);
                 BLEdata.set("manufacturerid", manufacturer_id);
