@@ -295,29 +295,30 @@ void MiScaleDiscovery(char * mac){
           #endif
           if (advertisedDevice.haveManufacturerData()){
             trc(F("Get manufacturer data :"));
-              std::string manufData = advertisedDevice.getManufacturerData();               
-              int manufDataLength = manufData.length();
-              trc(manufDataLength);
-              trc(advertisedDevice.getPayloadLength());
+              std::string manufacturerData = advertisedDevice.getManufacturerData();               
+              int manufacturerDataLength = manufacturerData.length();
               String returnedString = "";
-              for (int i=0; i<manufDataLength; i++)
+              for (int i=0; i<manufacturerDataLength; i++)
               {
-                int a = manufData[i];
+                int a = manufacturerData[i];
                 if (a < 16) {
                   returnedString = returnedString + "0";
                 } 
                 returnedString = returnedString + String(a,HEX);  
               }
-              char manuf_data[returnedString.length()+1];
-              returnedString.toCharArray(manuf_data,returnedString.length()+1);
-              manuf_data[returnedString.length()] = '\0';
+              char manufacturer_data[returnedString.length()+1];
+              returnedString.toCharArray(manufacturer_data,returnedString.length()+1);
+              manufacturer_data[returnedString.length()] = '\0';
+              char manufacturer_id[5] = { manufacturer_data[2], manufacturer_data[3], manufacturer_data[0], manufacturer_data[1], '\0' };
+              trc(manufacturer_data);
+              trc(manufacturer_id);
               #ifdef pubBLEServiceData
-                BLEdata.set("manufacturerdata", manuf_data);  
+                BLEdata.set("manufacturerdata", manufacturer_data);
+                BLEdata.set("manufacturerid", manufacturer_id);
               #endif
               pub((char *)mactopic.c_str(),BLEdata);
-              
           }
-          if (advertisedDevice.haveServiceData()){
+          else if (advertisedDevice.haveServiceData()){
               trc(F("Get services data :"));
               int serviceDataCount = advertisedDevice.getServiceDataCount();
               trc(serviceDataCount);
