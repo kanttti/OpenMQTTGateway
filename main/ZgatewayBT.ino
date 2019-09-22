@@ -315,6 +315,9 @@ void MiScaleDiscovery(char * mac){
                 BLEdata.set("manufacturerid", manufacturer_id);
               #endif
               pub((char *)mactopic.c_str(),BLEdata);
+              if (strstr(BLEdata["manufacturerid"].as<char*>(),"0499") != NULL){ //RuuviTag
+                trc("Processing RuuviTag BLE data");
+              }
           }
           else if (advertisedDevice.haveServiceData()){
               trc(F("Get services data :"));
